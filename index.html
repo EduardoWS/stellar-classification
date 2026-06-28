@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classificação Multiclasse de Curvas de Luz do TESS</title>
+<style>
+  @font-face{ font-family:'Jost'; font-weight:300; src:url('assets/fonts/jost-300.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Jost'; font-weight:400; src:url('assets/fonts/jost-400.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Jost'; font-weight:500; src:url('assets/fonts/jost-500.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Poppins'; font-weight:400; src:url('assets/fonts/poppins-400.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Poppins'; font-weight:600; src:url('assets/fonts/poppins-600.ttf') format('truetype'); font-display:swap; }
+  @font-face{ font-family:'Poppins'; font-weight:700; src:url('assets/fonts/poppins-700.ttf') format('truetype'); font-display:swap; }
+
+  :root{
+    --ink:#f3f6fc; --muted:#aebbd6; --blue:#a8c3ff; --blue2:#7ea2f0;
+    --amber:#ffb866; --line:rgba(255,255,255,.22); --panel:#0c1322; --card:rgba(12,16,28,.5);
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; overflow:hidden; background:#000003; }
+  body{ font-family:'Poppins',system-ui,sans-serif; color:var(--ink); }
+
+  /* fundo cosmico animado (quase preto, hints muito sutis) */
+  #space{ position:fixed; inset:0; z-index:0;
+    background:
+      radial-gradient(1000px 700px at 80% 5%, rgba(80,110,200,.05), transparent 58%),
+      radial-gradient(820px 640px at 8% 96%, rgba(130,95,200,.045), transparent 56%),
+      radial-gradient(1500px 1100px at 50% 42%, #05060d, #000003 76%); }
+  #stars{ position:fixed; inset:0; z-index:1; }
+
+  #viewport{ position:fixed; inset:0; z-index:2; display:grid; place-items:center; }
+  #stage{ position:relative; width:1280px; height:720px; transform-origin:center center; }
+
+  .slide{ position:absolute; inset:0; opacity:0; visibility:hidden; transition:opacity .5s ease;
+    padding:60px 84px; display:flex; flex-direction:column; justify-content:center; }
+  .slide.active{ opacity:1; visibility:visible; }
+  .frame{ position:absolute; inset:28px; border:1px solid rgba(255,255,255,.14); border-radius:38px; pointer-events:none; }
+
+  h1,h2,h3,.kicker{ font-family:'Jost',sans-serif; font-weight:300; letter-spacing:.04em; }
+  .stitle{ font-size:46px; font-weight:300; text-transform:uppercase; letter-spacing:.06em; color:#fff; margin-bottom:26px; line-height:1.08; }
+  .stitle .b{ font-weight:500; }
+  .accent{ color:var(--blue); }
+  .muted{ color:var(--muted); }
+  b,strong{ font-weight:700; color:#fff; }
+  p{ font-size:26px; line-height:1.5; }
+
+  /* CAPA */
+  .cover{ justify-content:center; align-items:center; text-align:center; }
+  .cover .kicker{ position:absolute; top:50px; left:0; right:0; text-align:center; font-size:22px;
+    letter-spacing:.2em; color:#cdd7ee; text-transform:uppercase; font-weight:400; }
+  .cover h1{ font-size:62px; font-weight:300; color:#fff; text-transform:uppercase; letter-spacing:.03em;
+    line-height:1.12; max-width:1040px; text-shadow:0 6px 50px rgba(0,0,0,.6); }
+  .cover .sub{ font-family:'Jost'; font-weight:300; font-size:30px; letter-spacing:.06em;
+    color:#dbe4f7; margin-top:30px; max-width:900px; }
+  .cover .who{ position:absolute; bottom:16px; left:0; right:0; text-align:center; color:var(--muted);
+    font-size:20px; letter-spacing:.05em; }
+  .hero{ position:absolute; inset:0; z-index:-1; }
+
+  /* cartoes */
+  .cards{ display:grid; gap:30px; }
+  .c2{ grid-template-columns:1fr 1fr; } .c3{ grid-template-columns:repeat(3,1fr); }
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:28px; padding:32px 34px; backdrop-filter:blur(4px); }
+  .card h3{ font-size:29px; font-weight:400; text-transform:uppercase; letter-spacing:.05em; color:#fff; margin-bottom:16px; line-height:1.12; }
+  .card p{ font-size:24px; line-height:1.45; }
+
+  .grid-side{ display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:center; }
+  .grid-side.wleft{ grid-template-columns:1.05fr .95fr; }
+
+  .stat .num{ font-family:'Jost'; font-weight:300; font-size:92px; color:#fff; line-height:1; }
+  .stat .lbl{ font-size:23px; color:var(--muted); }
+
+  .pill{ display:inline-block; font-size:21px; padding:8px 18px; border-radius:999px; border:1px solid var(--line); color:var(--blue); margin:6px 8px 0 0; }
+
+  ul.clean{ list-style:none; }
+  ul.clean li{ font-size:24px; line-height:1.35; margin:13px 0; padding-left:52px; position:relative; }
+  ul.clean li .n{ position:absolute; left:0; top:1px; width:33px; height:33px; border-radius:50%; border:1px solid var(--blue); color:var(--blue); display:grid; place-items:center; font-family:'Jost'; font-size:19px; }
+
+  /* figuras */
+  .slide.fig{ justify-content:flex-start; }
+  .fig .stitle{ margin-bottom:14px; }
+  .figwrap{ flex:1; display:flex; align-items:center; justify-content:center; min-height:0; }
+  .figwrap img{ max-width:98%; max-height:100%; object-fit:contain; background:#fff; padding:16px; border-radius:16px; box-shadow:0 24px 70px rgba(0,0,0,.55); }
+  .figside img{ width:100%; background:#fff; padding:14px; border-radius:14px; box-shadow:0 18px 50px rgba(0,0,0,.5); }
+  .fcap{ font-size:21px; color:var(--muted); text-align:center; margin-top:12px; line-height:1.35; }
+
+  /* tabela */
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ font-weight:600; font-size:23px; color:var(--blue); text-align:left; padding:15px 18px; border-bottom:2px solid rgba(168,195,255,.5); }
+  thead th.c{ text-align:center; }
+  tbody td{ font-size:23px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.10); }
+  tbody td.c{ text-align:center; }
+  tr.win td{ background:rgba(168,195,255,.13); color:#fff; font-weight:600; }
+  tr.win td:first-child{ border-radius:12px 0 0 12px; } tr.win td:last-child{ border-radius:0 12px 12px 0; }
+  .best{ color:#bfe3c4; font-weight:700; }
+
+  /* fluxo CNN */
+  .flow{ display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px; }
+  .chip{ text-align:center; border:1px solid var(--line); border-radius:16px; padding:18px 16px; min-width:118px; background:var(--card); position:relative; overflow:hidden; }
+  .chip .t{ font-family:'Jost'; font-size:25px; color:#fff; } .chip .s{ font-size:16px; color:var(--muted); margin-top:3px; }
+  .chip.out{ border-color:rgba(168,195,255,.6); } .chip.out .t{ color:var(--blue); }
+  .chip .pulse{ position:absolute; inset:0; background:linear-gradient(90deg,transparent,rgba(168,195,255,.25),transparent); transform:translateX(-100%); }
+  .ar{ color:var(--muted); font-size:28px; }
+
+  /* animacoes de classe */
+  .animrow{ display:grid; grid-template-columns:0.92fr 1.08fr; gap:40px; align-items:center; flex:1; min-height:0; }
+  .scene-svg{ width:100%; height:340px; display:block; }
+  .graph-svg{ width:100%; height:300px; display:block; background:rgba(8,12,22,.45); border:1px solid rgba(255,255,255,.10); border-radius:16px; }
+  .graph-svg .axis{ stroke:rgba(255,255,255,.4); stroke-width:1.2; }
+  .graph-svg .lc-faint{ fill:none; stroke:rgba(168,195,255,.22); stroke-width:2; }
+  .graph-svg .lc-bright{ fill:none; stroke-width:3; stroke-linejoin:round; stroke-linecap:round; }
+  .graph-svg .sweep{ stroke:rgba(255,255,255,.25); stroke-width:1; stroke-dasharray:4 5; }
+  .graph-svg .dot{ filter:drop-shadow(0 0 6px currentColor); }
+  .graph-svg .glab{ fill:#9fb0cc; font-family:'Poppins'; font-size:13px; }
+  .orbit-ring{ fill:none; stroke:rgba(255,255,255,.12); stroke-width:1; stroke-dasharray:3 6; }
+  .label-sci{ fill:#cdd7ee; font-family:'Poppins'; font-size:15px; }
+
+  #pg{ position:fixed; right:22px; bottom:15px; font-family:'Jost'; font-size:18px; color:rgba(255,255,255,.5); z-index:20; letter-spacing:.1em; }
+  #bar{ position:fixed; top:0; left:0; height:4px; width:0; background:var(--blue); z-index:20; transition:width .4s ease; box-shadow:0 0 14px rgba(168,195,255,.7); }
+  #hint{ position:fixed; left:22px; bottom:15px; font-family:'Jost'; font-size:14px; color:rgba(255,255,255,.3); z-index:20; letter-spacing:.06em; }
+</style>
+</head>
+<body>
+<div id="space"></div>
+<canvas id="stars"></canvas>
+<div id="bar"></div>
+
+<!-- gradientes compartilhados -->
+<svg width="0" height="0" style="position:absolute"><defs>
+  <radialGradient id="gStarBlue" cx="38%" cy="35%" r="70%">
+    <stop offset="0%" stop-color="#ffffff"/><stop offset="45%" stop-color="#cfe0ff"/><stop offset="100%" stop-color="#6f93e6"/>
+  </radialGradient>
+  <radialGradient id="gStarAmber" cx="38%" cy="35%" r="70%">
+    <stop offset="0%" stop-color="#fff3df"/><stop offset="45%" stop-color="#ffcf95"/><stop offset="100%" stop-color="#e08a3c"/>
+  </radialGradient>
+  <radialGradient id="gStarBig" cx="40%" cy="38%" r="70%">
+    <stop offset="0%" stop-color="#fffdf5"/><stop offset="40%" stop-color="#ffe9b0"/><stop offset="100%" stop-color="#f0a93c"/>
+  </radialGradient>
+  <radialGradient id="gPlanet" cx="35%" cy="32%" r="75%">
+    <stop offset="0%" stop-color="#2a3550"/><stop offset="100%" stop-color="#070a12"/>
+  </radialGradient>
+</defs></svg>
+
+<div id="viewport">
+  <div id="stage">
+
+    <!-- 1 CAPA -->
+    <section class="slide cover active">
+      <svg class="hero" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+        <ellipse class="orbit-ring" cx="640" cy="565" rx="340" ry="68"/>
+        <circle cx="640" cy="565" r="32" fill="url(#gStarBig)" style="filter:drop-shadow(0 0 34px rgba(255,200,120,.7))"/>
+        <circle id="heroPlanet" r="12" fill="url(#gPlanet)"/>
+      </svg>
+      <div class="kicker">SCC0276 · Aprendizado de Máquina · ICMC-USP</div>
+      <h1>Classificação Multiclasse de<br>Curvas de Luz do TESS</h1>
+      <br>
+      <div class="who">Eduardo Ribeiro Rodrigues · 13696679</div>
+    </section>
+
+    <!-- 2 O PROBLEMA -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">O problema de <span class="b accent">aprendizado de máquina</span></div>
+      <div class="cards c3">
+        <div class="card"><h3>Contexto</h3><p>O brilho de uma estrela muda por vários motivos: manchas, exoplanetas, sistemas binários, pulsações.</p></div>
+        <div class="card"><h3>Objetivo</h3><p>Usar classificação multiclasse para identificar a <span class="accent">causa</span> da variação.</p></div>
+        <div class="card"><h3>Dados</h3><p>Séries temporais, onde cada valor é a luminosidade da estrela em um instante.</p></div>
+      </div>
+      <p class="muted" style="font-size:23px; text-align:center; margin-top:34px">
+        O telescópio TESS observa milhões de estrelas: classificar na mão é inviável.</p>
+    </section>
+
+    <!-- 3 BINARIA (animacao) -->
+    <section class="slide anim">
+      <div class="frame"></div>
+      <div class="stitle">Binária <span class="b accent">eclipsante</span></div>
+      <div class="animrow">
+        <div><svg id="sc-bin" class="scene-svg" viewBox="0 0 400 300">
+          <text class="label-sci" x="200" y="288" text-anchor="middle">duas estrelas orbitando uma à outra</text>
+          <circle id="binA" r="36" fill="url(#gStarBlue)" style="filter:drop-shadow(0 0 26px rgba(150,185,255,.8))"/>
+          <circle id="binB" r="23" fill="url(#gStarAmber)" style="filter:drop-shadow(0 0 18px rgba(255,170,90,.7))"/>
+        </svg></div>
+        <div><svg id="gr-bin" class="graph-svg" viewBox="0 0 520 280"></svg></div>
+      </div>
+      <p class="fcap">Quando uma estrela passa na frente da outra, o brilho cai. Eclipse da estrela brilhante: <b>vale fundo</b>. Da estrela fraca: <b>vale raso</b>.</p>
+    </section>
+
+    <!-- 4 PULSANTE (animacao) -->
+    <section class="slide anim">
+      <div class="frame"></div>
+      <div class="stitle">Estrela <span class="b accent">pulsante</span></div>
+      <div class="animrow">
+        <div><svg id="sc-pul" class="scene-svg" viewBox="0 0 400 300">
+          <text class="label-sci" x="200" y="288" text-anchor="middle">a estrela incha e encolhe de forma ritmada</text>
+          <circle id="pulStar" cx="200" cy="140" r="60" fill="url(#gStarBlue)"/>
+        </svg></div>
+        <div><svg id="gr-pul" class="graph-svg" viewBox="0 0 520 280"></svg></div>
+      </div>
+      <p class="fcap">O tamanho e a temperatura mudam juntos, então o brilho sobe e desce de forma <b>suave e periódica</b>, como uma onda.</p>
+    </section>
+
+    <!-- 5 ROTACIONAL (animacao) -->
+    <section class="slide anim">
+      <div class="frame"></div>
+      <div class="stitle">Modulador <span class="b accent">rotacional</span></div>
+      <div class="animrow">
+        <div><svg id="sc-rot" class="scene-svg" viewBox="0 0 400 300">
+          <text class="label-sci" x="200" y="288" text-anchor="middle">manchas escuras que giram com a estrela</text>
+          <defs><clipPath id="rotClip"><circle cx="200" cy="140" r="62"/></clipPath></defs>
+          <circle cx="200" cy="140" r="62" fill="url(#gStarBlue)" style="filter:drop-shadow(0 0 24px rgba(150,185,255,.75))"/>
+          <g clip-path="url(#rotClip)"><ellipse id="rotSpot" cx="200" cy="140" rx="16" ry="20" fill="rgba(20,28,48,.82)"/></g>
+        </svg></div>
+        <div><svg id="gr-rot" class="graph-svg" viewBox="0 0 520 280"></svg></div>
+      </div>
+      <p class="fcap">A mancha some e reaparece a cada giro. O brilho cai quando ela está virada para nós, gerando uma variação <b>lenta</b>, parecida com a pulsante.</p>
+    </section>
+
+    <!-- 6 TRANSITO (animacao) -->
+    <section class="slide anim">
+      <div class="frame"></div>
+      <div class="stitle">Trânsito de <span class="b accent">exoplaneta</span></div>
+      <div class="animrow">
+        <div><svg id="sc-tra" class="scene-svg" viewBox="0 0 400 300">
+          <text class="label-sci" x="200" y="288" text-anchor="middle">um planeta passa na frente da estrela</text>
+          <circle cx="200" cy="140" r="74" fill="url(#gStarBig)" style="filter:drop-shadow(0 0 34px rgba(255,200,120,.7))"/>
+          <circle id="traPlanet" cy="140" r="14" fill="url(#gPlanet)"/>
+        </svg></div>
+        <div><svg id="gr-tra" class="graph-svg" viewBox="0 0 520 280"></svg></div>
+      </div>
+      <p class="fcap">O planeta tapa uma fração mínima da estrela, então a queda é <b>rasa</b> e curta. É a classe mais rara e a de maior interesse.</p>
+    </section>
+
+    <!-- 7 CURVAS REAIS (figura cheia) -->
+    <section class="slide fig">
+      <div class="stitle">As quatro classes em <span class="b accent">curvas reais</span></div>
+      <div class="figwrap"><img src="results/fig_curvas_classes.png" alt="Exemplos reais por classe" style="background:none; box-shadow:none; padding:0; max-height:96%"></div>
+      <p class="fcap">Cada curva é um ciclo dobrado em fase (linha clara = dado bruto). Pulsante e rotacional ficam parecidas, a maior fonte de erro; o trânsito é uma queda fina e rasa.</p>
+    </section>
+
+    <!-- 8 DIFERENCIAL (tabela) -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">O que ninguém tinha <span class="b accent">juntado</span></div>
+      <table>
+        <thead><tr><th>Trabalho</th><th>Problema tratado</th><th>Modelo</th><th class="c">Resultado</th></tr></thead>
+        <tbody>
+          <tr><td>Wang et al.</td><td>Variáveis (sem exoplaneta)</td><td>Random Forest</td><td class="c">milhares</td></tr>
+          <tr><td>Liu et al.</td><td>Subtipos de binária</td><td>Rede densa + Autoencoder</td><td class="c">99%</td></tr>
+          <tr><td>Tey et al.</td><td>Exoplaneta: sim ou não</td><td>1D-CNN</td><td class="c">99,6%</td></tr>
+          <tr><td>Iglesias et al.</td><td>Exoplaneta: sim ou não</td><td>1D-CNN</td><td class="c">99%</td></tr>
+          <tr><td>Cuéllar et al.</td><td>Exoplaneta: sim ou não</td><td>2D-CNN</td><td class="c">98%</td></tr>
+          <tr class="win"><td>Este trabalho</td><td>As 4 classes juntas</td><td>Random Forest e 1D-CNN</td><td class="c">—</td></tr>
+        </tbody>
+      </table>
+      <p class="muted" style="font-size:23px; margin-top:24px">Os outros separam o problema. Aqui, <b>um único modelo</b> decide entre as quatro classes ao mesmo tempo.</p>
+    </section>
+
+    <!-- 9 DADOS -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">Base montada de <span class="b accent">catálogos reais</span></div>
+      <div class="grid-side">
+        <div>
+          <p style="margin-bottom:18px"><b>Triple-9:</b> 999 candidatos a exoplaneta verificados.</p>
+          <p style="margin-bottom:18px"><b>TESS-EBs:</b> 4584 binárias eclipsantes.</p>
+          <p style="margin-bottom:30px"><b>Gaia DR3:</b> pulsantes e moduladoras de rotação.</p>
+          <div class="stat"><span class="num accent">3346</span><div class="lbl">curvas de luz, quase equilibradas entre as classes</div></div>
+        </div>
+        <div class="figside"><img src="results/fig_distribuicao_classes.png" alt="Distribuição das classes"></div>
+      </div>
+    </section>
+
+    <!-- 10 PRE-PROCESSAMENTO -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">De curva crua a <span class="b accent">vetor padronizado</span></div>
+      <div class="grid-side wleft">
+        <ul class="clean">
+          <li><span class="n">1</span>Normaliza o brilho na mesma escala</li>
+          <li><span class="n">2</span>Remove ruído só por cima, preservando as quedas</li>
+          <li><span class="n">3</span>Estima o período da variação</li>
+          <li><span class="n">4</span>Dobra a fase e resume em 512 pontos</li>
+          <li><span class="n">5</span>Realça a profundidade da queda</li>
+        </ul>
+        <div class="figside"><img src="results/fig_preprocessamento.png" alt="Pré-processamento">
+          <p class="fcap">Esquerda: crua. Direita: dobrada, limpa e centralizada.</p></div>
+      </div>
+    </section>
+
+    <!-- 11 DOIS CAMINHOS -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">Dois caminhos, <span class="b accent">mesma tarefa</span></div>
+      <div class="cards c2">
+        <div class="card"><h3>Aprendizado clássico</h3>
+          <p>Extraímos <b>10 atributos físicos</b> da curva, como período e profundidade, e treinamos:</p>
+          <div style="margin-top:14px"><span class="pill">Random Forest</span><span class="pill">SVM</span><span class="pill">KNN</span><span class="pill">Árvore de Decisão</span></div>
+        </div>
+        <div class="card"><h3>Aprendizado profundo</h3>
+          <p>Uma <b>rede convolucional 1D</b> recebe os 512 pontos e aprende sozinha os padrões da forma da curva.</p>
+          <p class="muted" style="margin-top:14px">Sem escolher atributos na mão.</p>
+        </div>
+      </div>
+      <p class="muted" style="font-size:22px; text-align:center; margin-top:28px">Comparação justa: mesma divisão de 80% treino e 20% teste para todos.</p>
+    </section>
+
+    <!-- 12 ATRIBUTOS -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">Quais atributos <span class="b accent">importam</span>?</div>
+      <div class="grid-side">
+        <div class="figside"><img src="results/fig_importancia_features.png" alt="Importância dos atributos"></div>
+        <div>
+          <p style="margin-bottom:22px">Os mais fortes fazem sentido físico: <b>período</b>, <b>profundidade</b> da queda e <b>força</b> da periodicidade.</p>
+          <div class="card"><h3 style="font-size:23px">Cuidado importante</h3>
+            <p>Removemos 2 atributos que eram <b class="accent">vazamento de informação</b>: diziam a origem do dado, não a física. Mantê-los inflaria o resultado.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 13 ARQUITETURA CNN (animada) -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">A arquitetura da <span class="b accent">rede convolucional 1D</span></div>
+      <div class="flow" id="cnnflow">
+        <div class="chip"><div class="pulse"></div><div class="t">512</div><div class="s">pontos de entrada</div></div>
+        <span class="ar">→</span>
+        <div class="chip"><div class="pulse"></div><div class="t">Conv 32</div><div class="s">filtros</div></div>
+        <span class="ar">→</span>
+        <div class="chip"><div class="pulse"></div><div class="t">Conv 64</div><div class="s">filtros</div></div>
+        <span class="ar">→</span>
+        <div class="chip"><div class="pulse"></div><div class="t">Conv 128</div><div class="s">filtros</div></div>
+        <span class="ar">→</span>
+        <div class="chip"><div class="pulse"></div><div class="t">Densa 128</div><div class="s">+ Dropout</div></div>
+        <span class="ar">→</span>
+        <div class="chip out"><div class="pulse"></div><div class="t">4</div><div class="s">classes</div></div>
+      </div>
+      <p class="muted" style="text-align:center; font-size:23px; margin-top:42px">As camadas convolucionais procuram padrões locais na curva. O treino para no melhor momento, antes de a rede decorar os dados.</p>
+    </section>
+
+    <!-- 14 TREINO CNN -->
+    <section class="slide fig">
+      <div class="stitle">A rede <span class="b accent">generalizou</span> bem</div>
+      <div class="figwrap"><img src="results/fig_cnn_treino.png" alt="Treino da CNN"></div>
+      <p class="fcap">Perdas de treino e validação caem juntas e o F1 sobe: a rede não decorou os dados.</p>
+    </section>
+
+    <!-- 15 COMPARACAO -->
+    <section class="slide fig">
+      <div class="stitle">Comparação de <span class="b accent">desempenho</span></div>
+      <div class="figwrap"><img src="results/fig_comparacao_modelos.png" alt="Comparação dos modelos"></div>
+      <p class="fcap">O modelo clássico (Random Forest) praticamente empatou com a rede profunda. O SVM recuperou mais exoplanetas.</p>
+    </section>
+
+    <!-- 16 MATRIZES RF vs CNN -->
+    <section class="slide fig">
+      <div class="stitle">Onde os melhores modelos <span class="b accent">se confundem</span></div>
+      <div class="figwrap"><img src="results/fig_matrizes_confusao.png" alt="Matrizes de confusão RF e CNN"></div>
+      <p class="fcap">Binária e exoplaneta são bem separadas. A maior confusão é entre pulsante e rotacional, que de fato se parecem.</p>
+    </section>
+
+    <!-- 17 MATRIZES 4 CLASSICOS -->
+    <section class="slide fig">
+      <div class="stitle">Os quatro modelos <span class="b accent">clássicos</span></div>
+      <div class="figwrap"><img src="results/fig_matrizes_4classicos.png" alt="Matrizes dos 4 modelos clássicos"></div>
+      <p class="fcap">A mesma história em todos: o exoplaneta se separa bem; pulsante e rotacional concentram os erros.</p>
+    </section>
+
+    <!-- 18 CONCLUSAO -->
+    <section class="slide">
+      <div class="frame"></div>
+      <div class="stitle">O que <span class="b accent">levamos daqui</span></div>
+      <div class="cards c3">
+        <div class="card"><h3>Unificado</h3><p>Um só modelo para as 4 classes, com dados reais de catálogos.</p></div>
+        <div class="card"><h3>Empate técnico</h3><p>Random Forest e 1D-CNN praticamente iguais. Atributos físicos bastaram.</p></div>
+        <div class="card"><h3>Resultado honesto</h3><p>Removemos o vazamento de informação para um número confiável.</p></div>
+      </div>
+      <p class="muted" style="font-size:23px; text-align:center; margin-top:30px">Futuro: mais exoplanetas, separar melhor pulsante de rotacional e redes maiores.</p>
+    </section>
+
+    <!-- 19 OBRIGADO -->
+    <section class="slide cover">
+      <svg class="hero" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+        <ellipse class="orbit-ring" cx="640" cy="560" rx="320" ry="66"/>
+        <circle cx="640" cy="560" r="30" fill="url(#gStarBig)" style="filter:drop-shadow(0 0 32px rgba(255,200,120,.7))"/>
+        <circle id="heroPlanet2" r="11" fill="url(#gPlanet)"/>
+      </svg>
+      <h1 style="font-size:84px">Obrigado</h1>
+      <div class="sub" style="letter-spacing:.28em; margin-top:24px">Perguntas?</div>
+      <div class="who">Eduardo Ribeiro Rodrigues · SCC0276 · ICMC-USP</div>
+    </section>
+
+  </div>
+</div>
+
+<div id="pg">01</div>
+<div id="hint">← → para navegar · F para tela cheia</div>
+
+<script>
+/* ===== escala do palco ===== */
+const stage=document.getElementById('stage');
+function fit(){ const s=Math.min(innerWidth/1280, innerHeight/720); stage.style.transform=`scale(${s})`; }
+addEventListener('resize',fit); fit();
+
+/* ===== navegacao ===== */
+const slides=[...document.querySelectorAll('.slide')];
+const bar=document.getElementById('bar'), pg=document.getElementById('pg');
+let i=0;
+function show(n){
+  i=Math.max(0,Math.min(slides.length-1,n));
+  slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+  bar.style.width=(i/(slides.length-1)*100)+'%';
+  pg.textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+  location.hash=i+1;
+}
+addEventListener('keydown',e=>{
+  if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();show(i+1);}
+  else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();show(i-1);}
+  else if(e.key==='Home')show(0); else if(e.key==='End')show(slides.length-1);
+  else if(e.key==='f'||e.key==='F'){ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }
+});
+document.getElementById('viewport').addEventListener('click',e=>{ e.clientX<innerWidth*0.25?show(i-1):show(i+1); });
+const st=parseInt((location.hash||'').replace('#',''),10);
+show(Number.isFinite(st)&&st>0?st-1:0);
+
+/* ===== fundo de estrelas ===== */
+(function(){
+  const c=document.getElementById('stars'), x=c.getContext('2d'); let S=[],w,h;
+  function rs(){ w=c.width=innerWidth; h=c.height=innerHeight;
+    const n=Math.min(240,Math.floor(w*h/8000));
+    S=Array.from({length:n},()=>({x:Math.random()*w,y:Math.random()*h,r:Math.random()*1.4+.3,a:Math.random(),s:Math.random()*.02+.004,dx:(Math.random()-.5)*.04})); }
+  function t(){ x.clearRect(0,0,w,h);
+    for(const o of S){ o.a+=o.s; if(o.a>1||o.a<0)o.s*=-1; o.x+=o.dx; if(o.x<0)o.x=w; if(o.x>w)o.x=0;
+      x.globalAlpha=Math.max(.12,Math.abs(o.a)); x.beginPath(); x.arc(o.x,o.y,o.r,0,6.283);
+      x.fillStyle=o.r>1.1?'#bcd6ff':'#fff'; x.fill(); }
+    requestAnimationFrame(t); }
+  addEventListener('resize',rs); rs(); t();
+})();
+
+/* ===== curvas de luz + cenas animadas ===== */
+const NS='http://www.w3.org/2000/svg';
+function E(n,a){ const e=document.createElementNS(NS,n); for(const k in a)e.setAttribute(k,a[k]); return e; }
+function gauss(t,m,s){ return Math.exp(-((t-m)**2)/(2*s*s)); }
+
+function buildGraph(svg,flux,fmin,fmax,color){
+  const x0=60,x1=498,yt=26,yb=232,N=200;
+  const X=p=>x0+p*(x1-x0), C=f=>Math.max(fmin,Math.min(fmax,f)), Y=f=>yt+(1-(C(f)-fmin)/(fmax-fmin))*(yb-yt);
+  svg.appendChild(E('line',{x1:x0,y1:yt,x2:x0,y2:yb,class:'axis'}));
+  svg.appendChild(E('line',{x1:x0,y1:yb,x2:x1,y2:yb,class:'axis'}));
+  let pts=[]; for(let k=0;k<=N;k++){const p=k/N; pts.push(X(p).toFixed(1)+','+Y(flux(p)).toFixed(1));}
+  svg.appendChild(E('polyline',{points:pts.join(' '),class:'lc-faint'}));
+  const bright=E('polyline',{class:'lc-bright',points:''}); bright.style.stroke=color; svg.appendChild(bright);
+  const sweep=E('line',{class:'sweep',x1:X(0),y1:yt,x2:X(0),y2:yb}); svg.appendChild(sweep);
+  const dot=E('circle',{r:6,class:'dot'}); dot.style.fill=color; dot.style.color=color; svg.appendChild(dot);
+  const yl=E('text',{x:-(yt+yb)/2,y:18,transform:'rotate(-90)','text-anchor':'middle',class:'glab'}); yl.textContent='Brilho'; svg.appendChild(yl);
+  const xl=E('text',{x:(x0+x1)/2,y:260,'text-anchor':'middle',class:'glab'}); xl.textContent='Tempo'; svg.appendChild(xl);
+  return p=>{ const m=Math.floor(p*N); let b=[]; for(let k=0;k<=m;k++){const pp=k/N; b.push(X(pp).toFixed(1)+','+Y(flux(pp)).toFixed(1));}
+    bright.setAttribute('points',b.join(' ')); const xx=X(p),yy=Y(flux(p));
+    sweep.setAttribute('x1',xx); sweep.setAttribute('x2',xx); dot.setAttribute('cx',xx); dot.setAttribute('cy',yy); };
+}
+
+const anims=[];
+function reg(slideIdx,T,sceneUpd,drawTrace){ anims.push({slide:slides[slideIdx],T,sceneUpd,drawTrace}); }
+
+/* --- Binária --- */
+(function(){
+  const A=document.getElementById('binA'), B=document.getElementById('binB');
+  const flux=p=>1 - 0.55*gauss(p,0.25,0.028) - 0.24*gauss(p,0.75,0.032);
+  const draw=buildGraph(document.getElementById('gr-bin'),flux,0.38,1.04,'#a8c3ff');
+  const cx=200,cy=140,Rx=92;
+  reg(2,6,p=>{
+    const th=2*Math.PI*p;
+    const xA=cx-Rx*Math.cos(th), xB=cx+Rx*Math.cos(th);
+    const yA=cy-10*Math.sin(th), yB=cy+10*Math.sin(th);
+    A.setAttribute('cx',xA); A.setAttribute('cy',yA);
+    B.setAttribute('cx',xB); B.setAttribute('cy',yB);
+    // z-order: estrela com sin>0 está na frente
+    const front = Math.sin(th)>=0 ? A : B, par=A.parentNode;
+    if(par.lastChild!==front) par.appendChild(front);
+  },draw);
+})();
+
+/* --- Pulsante --- */
+(function(){
+  const s=document.getElementById('pulStar');
+  const flux=p=>0.78+0.20*Math.sin(2*Math.PI*p);
+  const draw=buildGraph(document.getElementById('gr-pul'),flux,0.5,1.0,'#a8c3ff');
+  reg(3,4,p=>{
+    const r=58+12*Math.sin(2*Math.PI*p);
+    s.setAttribute('r',r);
+    const g=18+14*(0.5+0.5*Math.sin(2*Math.PI*p));
+    s.style.filter=`drop-shadow(0 0 ${g}px rgba(160,195,255,.85))`;
+  },draw);
+})();
+
+/* --- Rotacional --- */
+(function(){
+  const spot=document.getElementById('rotSpot');
+  const flux=p=>0.95-0.12*(0.5+0.5*Math.cos(2*Math.PI*p));
+  const draw=buildGraph(document.getElementById('gr-rot'),flux,0.78,1.0,'#a8c3ff');
+  const cx=200,cy=140;
+  reg(4,7,p=>{
+    const th=2*Math.PI*p, vis=Math.cos(th); // >0 frente
+    spot.setAttribute('cx',cx+44*Math.sin(th));
+    spot.setAttribute('rx',Math.max(1,16*Math.abs(vis)));
+    spot.setAttribute('opacity',vis>0?0.85:0);
+  },draw);
+})();
+
+/* --- Trânsito --- */
+(function(){
+  const pl=document.getElementById('traPlanet');
+  const cx=200,R=74,rp=14, x0=-30,x1=430;
+  const xOf=p=>x0+(x1-x0)*p;
+  function flux(p){ const d=Math.abs(xOf(p)-cx); if(d>R+rp)return 1; if(d<R-rp)return 1-0.12;
+    return 1-0.12*((R+rp-d)/(2*rp)); }
+  const draw=buildGraph(document.getElementById('gr-tra'),flux,0.82,1.02,'#ffce8c');
+  reg(5,6,p=>{ pl.setAttribute('cx',xOf(p)); },draw);
+})();
+
+/* --- loop unico --- */
+function tick(now){
+  for(const a of anims){ if(!a.slide.classList.contains('active'))continue;
+    const p=((now/1000)%a.T)/a.T; a.sceneUpd(p); a.drawTrace(p); }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* --- planetas da capa --- */
+(function(){
+  const p1=document.getElementById('heroPlanet'), p2=document.getElementById('heroPlanet2');
+  function orbit(now){
+    const a=now/1000*0.5;
+    if(p1){ p1.setAttribute('cx',640+340*Math.cos(a)); p1.setAttribute('cy',565+68*Math.sin(a)); }
+    if(p2){ p2.setAttribute('cx',640+320*Math.cos(a*1.1)); p2.setAttribute('cy',560+66*Math.sin(a*1.1)); }
+    requestAnimationFrame(orbit);
+  } requestAnimationFrame(orbit);
+})();
+
+/* --- pulso de dados fluindo pela CNN --- */
+(function(){
+  const pulses=[...document.querySelectorAll('#cnnflow .pulse')];
+  let t0=null;
+  function run(now){
+    if(t0===null)t0=now; const e=(now-t0)/1000;
+    pulses.forEach((el,k)=>{ const ph=((e-k*0.18)%2.2)/1.1;
+      el.style.transform=`translateX(${ph<1?(-100+ph*200):100}%)`; });
+    requestAnimationFrame(run);
+  } requestAnimationFrame(run);
+})();
+</script>
+</body>
+</html>
