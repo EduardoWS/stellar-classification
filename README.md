@@ -25,7 +25,6 @@ entre pulsantes e moduladoras de rotação, que têm formas parecidas.
 - `notebooks/01_dados_preprocessamento.ipynb`: aquisição dos dados e pré-processamento.
 - `notebooks/02_modelagem_avaliacao.ipynb`: treino e avaliação dos modelos.
 - `results/`: figuras e tabelas de métricas.
-- `report/artigo.md`: rascunho do artigo final.
 - `requirements.txt`: dependências.
 
 A pasta `data/` (catálogos, curvas e dataset processado) não é versionada por ser
