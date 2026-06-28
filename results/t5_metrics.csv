@@ -1,0 +1,2 @@
+modelo,acuracia,precisao,recall,f1_macro,recall_exo
+1D-CNN,0.8224,0.8248,0.8224,0.8212,0.8208

@@ -1,0 +1,19 @@
+# Núcleo científico (já presente no Google Colab)
+numpy
+pandas
+scipy
+scikit-learn
+matplotlib
+seaborn
+
+# Astronomia (PRECISA instalar no Colab)
+lightkurve>=2.4
+astropy>=5.3
+astroquery>=0.4.7
+
+# Deep learning (torch já vem no Colab; descomente tensorflow se preferir usar Keras)
+torch
+# tensorflow
+
+# Utilidades
+tqdm

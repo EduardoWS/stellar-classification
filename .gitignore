@@ -1,0 +1,22 @@
+# Documentos (PDFs do enunciado e plano interno)
+docs/
+
+# Rascunho do artigo (mantido só localmente; vai para o Google Docs)
+report/
+
+# Dados grandes e regeneráveis (baixados/gerados pelos notebooks)
+data/
+
+# Pesos de modelos treinados (regeneráveis)
+*.pt
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
