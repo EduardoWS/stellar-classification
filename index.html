@@ -495,12 +495,12 @@ function reg(slideIdx,T,sceneUpd,drawTrace){ anims.push({slide:slides[slideIdx],
 /* --- Rotacional --- */
 (function(){
   const spot=document.getElementById('rotSpot');
-  const flux=p=>0.95-0.12*(0.5+0.5*Math.cos(2*Math.PI*p));
+  const flux=p=>{const v=-Math.cos(2*Math.PI*p); return 0.95-0.12*(v>0?v*v:0);}; // so escurece com a mancha de frente
   const draw=buildGraph(document.getElementById('gr-rot'),flux,0.78,1.0,'#a8c3ff');
   const cx=200,cy=140;
   reg(4,7,p=>{
-    const th=2*Math.PI*p, vis=Math.cos(th); // >0 frente
-    spot.setAttribute('cx',cx+44*Math.sin(th));
+    const th=2*Math.PI*p, vis=-Math.cos(th); // mancha cruza a frente no meio do loop (p=0.5)
+    spot.setAttribute('cx',cx-62*Math.sin(th)); // 62 = raio da estrela, mancha vai ate a borda
     spot.setAttribute('rx',Math.max(1,16*Math.abs(vis)));
     spot.setAttribute('opacity',vis>0?0.85:0);
   },draw);
