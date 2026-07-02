@@ -85,9 +85,9 @@
 
   /* tabela */
   table{ width:100%; border-collapse:collapse; }
-  thead th{ font-weight:600; font-size:23px; color:var(--blue); text-align:left; padding:15px 18px; border-bottom:2px solid rgba(168,195,255,.5); }
+  thead th{ font-weight:600; font-size:23px; color:var(--blue); text-align:left; padding:15px 18px; border-bottom:2px solid rgba(168,195,255,.5); white-space:nowrap; }
   thead th.c{ text-align:center; }
-  tbody td{ font-size:23px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.10); }
+  tbody td{ font-size:23px; padding:14px 18px; border-bottom:1px solid rgba(255,255,255,.10); white-space:nowrap; }
   tbody td.c{ text-align:center; }
   tr.win td{ background:rgba(168,195,255,.13); color:#fff; font-weight:600; }
   tr.win td:first-child{ border-radius:12px 0 0 12px; } tr.win td:last-child{ border-radius:0 12px 12px 0; }
@@ -241,14 +241,14 @@
       <div class="frame"></div>
       <div class="stitle">O que ninguém tinha <span class="b accent">juntado</span></div>
       <table>
-        <thead><tr><th>Trabalho</th><th>Problema tratado</th><th>Modelo</th><th class="c">Resultado</th></tr></thead>
+        <thead><tr><th>Trabalho</th><th class="c">Ano</th><th>Problema tratado</th><th>Modelo</th><th class="c">Resultado</th></tr></thead>
         <tbody>
-          <tr><td>Wang et al.</td><td>Variáveis (sem exoplaneta)</td><td>Random Forest</td><td class="c">milhares</td></tr>
-          <tr><td>Liu et al.</td><td>Subtipos de binária</td><td>Rede densa + Autoencoder</td><td class="c">99%</td></tr>
-          <tr><td>Tey et al.</td><td>Exoplaneta: sim ou não</td><td>1D-CNN</td><td class="c">99,6%</td></tr>
-          <tr><td>Iglesias et al.</td><td>Exoplaneta: sim ou não</td><td>1D-CNN</td><td class="c">99%</td></tr>
-          <tr><td>Cuéllar et al.</td><td>Exoplaneta: sim ou não</td><td>2D-CNN</td><td class="c">98%</td></tr>
-          <tr class="win"><td>Este trabalho</td><td>As 4 classes juntas</td><td>Random Forest e 1D-CNN</td><td class="c">—</td></tr>
+          <tr><td>Wang et al.</td><td class="c">2025</td><td>Variáveis (sem exoplaneta)</td><td>Random Forest</td><td class="c">milhares</td></tr>
+          <tr><td>Liu et al.</td><td class="c">2026</td><td>Subtipos de binária</td><td>Rede densa + Autoencoder</td><td class="c">99%</td></tr>
+          <tr><td>Tey et al.</td><td class="c">2023</td><td>Exoplaneta: sim ou não</td><td>1D-CNN</td><td class="c">99,6%</td></tr>
+          <tr><td>Iglesias et al.</td><td class="c">2023</td><td>Exoplaneta: sim ou não</td><td>1D-CNN</td><td class="c">99%</td></tr>
+          <tr><td>Cuéllar et al.</td><td class="c">2022</td><td>Exoplaneta: sim ou não</td><td>2D-CNN</td><td class="c">98%</td></tr>
+          <tr class="win"><td>Este trabalho</td><td class="c">2026</td><td>As 4 classes juntas</td><td>Random Forest e 1D-CNN</td><td class="c">—</td></tr>
         </tbody>
       </table>
       <p class="muted" style="font-size:23px; margin-top:24px">Os outros separam o problema. Aqui, <b>um único modelo</b> decide entre as quatro classes ao mesmo tempo.</p>
